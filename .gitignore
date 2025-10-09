@@ -4,3 +4,9 @@ __pycache__/
 *.pyc
 .mypy_cache/
 .adk/
+
+# PostgreSQL データ
+postgres_data/
+
+# Docker Compose オーバーライド設定
+docker-compose.override.yml

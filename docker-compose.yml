@@ -1,0 +1,42 @@
+# PostgreSQLコンテナの設定
+# ADKの会話履歴を永続化するためのデータベース
+
+version: '3.8'
+
+services:
+  # PostgreSQLデータベースサービス
+  postgres:
+    image: postgres:15-alpine
+    container_name: adk_postgres
+    restart: unless-stopped
+
+    # 環境変数の設定
+    environment:
+      # データベース名
+      POSTGRES_DB: adk_sessions
+      # ユーザー名
+      POSTGRES_USER: adk_user
+      # パスワード（本番環境では.envから読み込むことを推奨）
+      POSTGRES_PASSWORD: adk_password
+      # タイムゾーン設定
+      TZ: Asia/Tokyo
+
+    # ポートマッピング（ホスト:コンテナ）
+    ports:
+      - "5432:5432"
+
+    # データ永続化のためのボリューム
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    # ヘルスチェック（データベースが起動しているか確認）
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adk_user -d adk_sessions"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# 名前付きボリュームの定義
+volumes:
+  postgres_data:
+    driver: local
