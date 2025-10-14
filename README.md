@@ -7,6 +7,7 @@ Google Agent Development Kit (ADK)を使用した飲み物案内マルチエー�
 - **マルチエージェント構成**: コーヒーエージェントと紅茶エージェントが専門知識で応答
 - **トークン使用量のモニタリング**: 各会話のトークン数（input/output/total）をリアルタイムでログ出力
 - **会話履歴の永続化**: PostgreSQLを使って会話履歴を自動保存
+- **トークン使用量のDB保存**: 各LLM呼び出しのトークン使用量を専用テーブルに記録し、後から分析可能
 
 ## セットアップ
 
@@ -35,6 +36,16 @@ docker compose up -d
 docker compose ps
 ```
 
+### 4. データベースマイグレーション（初回のみ）
+
+トークン使用量を保存するテーブルを作成します：
+
+```bash
+uv run python scripts/run_migration.py
+```
+
+成功すると、`token_usage`テーブルが作成されます。
+
 ## 使用方法
 ### ADK Web UIの起動
 PostgreSQLに会話履歴を保存しながらADKを起動：
@@ -46,12 +57,45 @@ uv run adk web --session_service_uri postgresql://adk_user:adk_password@localhos
 ブラウザで表示されたURLにアクセスして、エージェントと会話できます。
 
 ### トークン使用量の確認
+
+#### コンソールログ
 コンソールに以下のようなログが表示されます：
 
 ```
-INFO:agents.agent:[TOKEN USAGE] Input: 150, Output: 200, Total: 350
-INFO:agents.coffee_agent.agent:[TOKEN USAGE - coffee_agent] Input: 100, Output: 150, Total: 250
+INFO:utils.token_logger:[TOKEN USAGE - root_agent] Input: 150, Output: 200, Total: 350
+INFO:utils.token_logger:[TOKEN USAGE - coffee_agent] Input: 100, Output: 150, Total: 250
 ```
+
+#### データベースから確認
+PostgreSQLに接続してトークン使用量を確認：
+
+```bash
+# PostgreSQLに接続
+docker compose exec postgres psql -U adk_user -d adk_sessions
+
+# 最近のトークン使用量を表示
+SELECT timestamp, agent_name, input_tokens, output_tokens, total_tokens
+FROM token_usage
+ORDER BY timestamp DESC
+LIMIT 10;
+
+# エージェント別の集計
+SELECT agent_name, COUNT(*) as calls, SUM(total_tokens) as total
+FROM token_usage
+GROUP BY agent_name;
+
+# 終了
+\q
+```
+
+#### 分析用SQLの実行
+[queries/token_usage_analysis.sql](queries/token_usage_analysis.sql)には様々な分析用SQLが用意されています：
+- 全体のトークン使用量サマリー
+- エージェント別の集計
+- 時系列分析（日別・時間帯別）
+- セッション別の分析
+- コスト推定
+- 異常検知
 
 ## プロジェクト構成
 
@@ -66,6 +110,16 @@ INFO:agents.coffee_agent.agent:[TOKEN USAGE - coffee_agent] Input: 100, Output: 
 │   └── instruction.py        # エージェントの指示
 ├── batch/
 │   └── run_agent_sample.py   # バッチ実行用スクリプト
+├── migrations/
+│   └── 001_create_token_usage_table.sql  # DBマイグレーション
+├── models/
+│   └── token_usage.py        # トークン使用量モデル
+├── queries/
+│   └── token_usage_analysis.sql  # 分析用SQLサンプル
+├── scripts/
+│   └── run_migration.py      # マイグレーション実行スクリプト
+├── utils/
+│   └── token_logger.py       # トークンロギングユーティリティ
 ├── docker-compose.yml        # PostgreSQL設定
 ├── pyproject.toml            # 依存パッケージ定義
 └── .env                      # 環境変数（Git管理外）
