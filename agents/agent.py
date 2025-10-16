@@ -1,18 +1,16 @@
 import logging
-from typing import Optional
 
 from google.adk.agents import Agent
 from google.adk.agents.callback_context import CallbackContext
-from google.adk.models.llm_response import LlmResponse
 from agents.instruction import INSTRUCTION
 
 from agents.coffee_agent.agent import coffee_agent
 from agents.tea_agent.agent import tea_agent
-from utils.token_logger import log_and_save_token_usage
 
 # サブエージェントをインポート
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 # ロガーの設定（トークン使用量をログ出力するために使用）
@@ -21,77 +19,92 @@ logger = logging.getLogger(__name__)
 
 async def log_token_usage(
     callback_context: CallbackContext,
-    llm_response: LlmResponse,
-) -> Optional[LlmResponse]:
+) -> None:
     """
-    LLMからのレスポンス後にトークン使用量をログ出力・DB保存するコールバック関数
+    エージェントの処理完了後にトークン使用量とイベント情報をログ出力するコールバック関数
 
-    この関数はLLMが応答を返すたびに自動的に呼び出されます。
-    usage_metadataからトークン数を取得してログに記録し、データベースに保存します。
+    この関数はエージェントの処理が完了するたびに自動的に呼び出されます。
+    callback_contextから各種情報を取得してログに記録します。
     """
-    # レスポンスにusage_metadata（トークン使用量情報）が含まれているかチェック
-    if llm_response and hasattr(llm_response, "usage_metadata"):
-        usage = llm_response.usage_metadata
-        if usage:
-            # 各トークン数を取得
-            input_tokens = getattr(usage, "prompt_token_count", 0)      # 入力トークン数（プロンプト）
-            output_tokens = getattr(usage, "candidates_token_count", 0)  # 出力トークン数（応答）
-            total_tokens = getattr(usage, "total_token_count", 0)        # 合計トークン数
+    # 基本情報を取得
+    agent_name = getattr(callback_context, "agent_name", None)
 
-            # CallbackContextのstateからセッションIDを取得（可能な場合）
-            # セッションIDはstateに保存されている必要があります
-            if hasattr(callback_context, "state"):
-                session_id = callback_context.state.get("_session_id", "unknown")
-                user_id = callback_context.state.get("_user_id", None)
-            else:
-                session_id = "unknown"
-                user_id = None
+    # セッション情報を取得
+    session = getattr(callback_context, "session", None)
+    event_id = None
+    app_name = None
+    user_id = None
+    session_id = None
+    user_message = None
+    ai_response = None
+    input_tokens = 0
+    output_tokens = 0
+    total_tokens = 0
 
-            # ユーザーの発話とAIの応答を取得
-            user_message = None
-            ai_response = None
+    if session:
+        app_name = getattr(session, "app_name", None)
+        user_id = getattr(session, "user_id", None)
+        session_id = getattr(session, "id", None)
 
-            # callback_contextからユーザーメッセージを取得
-            user_message = None
-            try:
-                if hasattr(callback_context, 'user_content') and callback_context.user_content:
-                    user_content = callback_context.user_content
-                    if hasattr(user_content, 'parts') and user_content.parts:
-                        for part in user_content.parts:
-                            if hasattr(part, 'text') and part.text:
-                                user_message = part.text
-                                break
-            except Exception as e:
-                logger.debug(f"Error getting user message: {e}")
+        # イベントリストから最新のユーザーメッセージとAI応答を取得
+        events = getattr(session, "events", [])
+        if events:
+            # 最後から逆順にイベントを確認
+            for event in reversed(events):
+                # AI応答を取得（まだ取得していない場合）
+                if ai_response is None:
+                    author = getattr(event, "author", None)
+                    if author == agent_name:  # 現在のエージェントの応答
+                        # AI応答イベントのIDを取得
+                        event_id = getattr(event, "id", None)
 
-            # LLMの応答から応答テキストを取得
-            ai_response = None
-            try:
-                if hasattr(llm_response, 'content') and llm_response.content:
-                    content = llm_response.content
-                    if hasattr(content, 'parts') and content.parts:
-                        for part in content.parts:
-                            if hasattr(part, 'text') and part.text:
-                                ai_response = part.text
-                                break
-            except Exception as e:
-                logger.debug(f"Error getting AI response: {e}")
-                ai_response = None
+                        content = getattr(event, "content", None)
+                        if content:
+                            parts = getattr(content, "parts", [])
+                            if parts and hasattr(parts[0], "text"):
+                                ai_response = parts[0].text
 
-            # トークン使用量をログ出力してDBに保存
-            log_and_save_token_usage(
-                agent_name="root_agent",
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                total_tokens=total_tokens,
-                session_id=session_id,
-                user_id=user_id,
-                model_name="gemini-2.0-flash",
-                user_message=user_message,
-                ai_response=ai_response,
-            )
+                        # トークン使用量を取得
+                        usage_metadata = getattr(event, "usage_metadata", None)
+                        if usage_metadata:
+                            input_tokens = getattr(
+                                usage_metadata, "prompt_token_count", 0
+                            )
+                            output_tokens = getattr(
+                                usage_metadata, "candidates_token_count", 0
+                            )
+                            total_tokens = getattr(
+                                usage_metadata, "total_token_count", 0
+                            )
 
-    return None
+                # ユーザーメッセージを取得（まだ取得していない場合）
+                if user_message is None:
+                    content = getattr(event, "content", None)
+                    if content:
+                        role = getattr(content, "role", None)
+                        if role == "user":
+                            parts = getattr(content, "parts", [])
+                            if parts and hasattr(parts[0], "text"):
+                                user_message = parts[0].text
+
+                # 両方取得できたらループを終了
+                if user_message is not None and ai_response is not None:
+                    break
+
+    # 情報を出力
+    print("\n" + "=" * 80)
+    print("📊 イベント情報とトークン使用量:")
+    print("=" * 80)
+    print(f"🔑 event_id      : {event_id}")
+    print(f"📱 app_name      : {app_name}")
+    print(f"👤 user_id       : {user_id}")
+    print(f"🔗 session_id    : {session_id}")
+    print(f"💬 user_message  : {user_message}")
+    print(f"🤖 ai_response   : {ai_response}")
+    print(f"📥 input_tokens  : {input_tokens}")
+    print(f"📤 output_tokens : {output_tokens}")
+    print(f"📊 total_tokens  : {total_tokens}")
+    print("=" * 80)
 
 root_agent = Agent(
     name="root_agent",
@@ -99,5 +112,5 @@ root_agent = Agent(
     model="gemini-2.0-flash",
     instruction=INSTRUCTION,
     sub_agents=[coffee_agent, tea_agent],
-    after_model_callback=log_token_usage
+    after_agent_callback=log_token_usage,
 )
