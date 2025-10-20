@@ -10,8 +10,7 @@ model_call_count = 0
 
 # データベース接続URL（環境変数から取得、デフォルト値を設定）
 DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://adk_user:adk_password@localhost:5432/adk_sessions"
+    "DATABASE_URL", "postgresql://adk_user:adk_password@localhost:5432/adk_sessions"
 )
 
 
@@ -42,11 +41,21 @@ def save_token_usage_to_db(
             )
         """
 
-        cur.execute(insert_query, (
-            event_id, app_name, user_id, session_id,
-            user_message, ai_response,
-            input_tokens, thoughts_tokens, output_tokens, total_tokens
-        ))
+        cur.execute(
+            insert_query,
+            (
+                event_id,
+                app_name,
+                user_id,
+                session_id,
+                user_message,
+                ai_response,
+                input_tokens,
+                thoughts_tokens,
+                output_tokens,
+                total_tokens,
+            ),
+        )
 
         conn.commit()
         cur.close()
@@ -59,7 +68,9 @@ def save_token_usage_to_db(
         # エラーが発生してもプログラムは続行
 
 
-async def get_token(callback_context: CallbackContext, llm_response: LlmResponse) -> Optional[LlmResponse]:
+async def get_token(
+    callback_context: CallbackContext, llm_response: LlmResponse
+) -> Optional[LlmResponse]:
     """モデルが呼ばれるたびにカウントを増やす"""
     global model_call_count
 
@@ -135,9 +146,7 @@ async def log_token_usage(callback_context: CallbackContext) -> None:
             if user_event and user_event.content.parts
             else None
         )
-        ai_response = (
-            ai_event.content.parts[0].text if ai_event.content.parts else None
-        )
+        ai_response = ai_event.content.parts[0].text if ai_event.content.parts else None
 
         # トークン使用量を取得
         usage = ai_event.usage_metadata
@@ -155,7 +164,7 @@ async def log_token_usage(callback_context: CallbackContext) -> None:
             user_message=user_message,
             ai_response=ai_response,
             input_tokens=input_tokens,
-            thoughts_tokens=thoughts_tokens,
+            thoughts_tokens=0,
             output_tokens=output_tokens,
             total_tokens=total_tokens,
         )

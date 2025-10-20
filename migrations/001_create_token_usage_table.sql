@@ -1,22 +1,23 @@
--- マイグレーション: トークン使用量記録テーブルの作成
+-- トークン使用量記録テーブルの作成
 -- 作成日: 2025-10-16
 
 -- トークン使用量を記録するテーブル
 CREATE TABLE IF NOT EXISTS token_usage (
-    id SERIAL PRIMARY KEY,
     event_id VARCHAR(128) NOT NULL,
     app_name VARCHAR(128) NOT NULL,
     user_id VARCHAR(128) NOT NULL,
     session_id VARCHAR(128) NOT NULL,
     user_message TEXT,
     ai_response TEXT,
-    input_tokens INT,
-    thoughts_tokens INT,
-    output_tokens INT,
-    total_tokens INT,
+    input_tokens INT NOT NULL DEFAULT 0,
+    thoughts_tokens INT NOT NULL DEFAULT 0,
+    output_tokens INT NOT NULL DEFAULT 0,
+    total_tokens INT NOT NULL DEFAULT 0,
+
+    -- 複合主キーの定義
+    PRIMARY KEY (event_id, app_name, user_id, session_id),
 
     -- 外部キー制約（eventsテーブルへの複合外部キー）
-    -- eventsテーブルの (id, app_name, user_id, session_id) を参照
     CONSTRAINT fk_events_composite
         FOREIGN KEY (event_id, app_name, user_id, session_id)
         REFERENCES events(id, app_name, user_id, session_id)
@@ -24,10 +25,7 @@ CREATE TABLE IF NOT EXISTS token_usage (
 );
 
 -- インデックスの作成
-CREATE INDEX IF NOT EXISTS idx_token_usage_event_id ON token_usage(event_id);
-CREATE INDEX IF NOT EXISTS idx_token_usage_session_id ON token_usage(session_id);
-CREATE INDEX IF NOT EXISTS idx_token_usage_user_id ON token_usage(user_id);
-CREATE INDEX IF NOT EXISTS idx_token_usage_app_name ON token_usage(app_name);
+CREATE INDEX IF NOT EXISTS idx_token_usage ON token_usage(user_id, session_id);
 
 -- コメントの追加
 COMMENT ON TABLE token_usage IS 'トークン使用量とイベント情報を記録するテーブル';
