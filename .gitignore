@@ -10,3 +10,7 @@ postgres_data/
 
 # Docker Compose オーバーライド設定
 docker-compose.override.yml
+
+# Backup files
+backup_before_upgrade.sql
+schema_before_upgrade.sql
