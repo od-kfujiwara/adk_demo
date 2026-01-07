@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "google-adk[eval,web]>=1.12.0",
+    "google-adk[eval,web]==1.18.0",
     "psycopg2-binary>=2.9.0",  # PostgreSQLアダプタ（ADKのDatabaseSessionService用）
     "python-dotenv>=1.0.0",     # .envファイルから環境変数を読み込むため
 ]
