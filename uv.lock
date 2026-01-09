@@ -24,6 +24,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "google-adk", extra = ["eval"] },
+    { name = "holidays" },
     { name = "psycopg2-binary" },
     { name = "python-dotenv" },
 ]
@@ -31,6 +32,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "google-adk", extras = ["eval", "web"], specifier = "==1.18.0" },
+    { name = "holidays", specifier = ">=0.88" },
     { name = "psycopg2-binary", specifier = ">=2.9.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
@@ -1316,6 +1318,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/4a/1b/de6817b4bf65385280252dff5c9cceeedfbcb27ddb93923639323c1034a4/hf_xet-1.1.8-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:4a9b99ab721d385b83f4fc8ee4e0366b0b59dce03b5888a86029cc0ca634efbf", size = 3238122, upload-time = "2025-08-18T22:01:00.546Z" },
     { url = "https://files.pythonhosted.org/packages/b7/13/874c85c7ed519ec101deb654f06703d9e5e68d34416730f64c4755ada36a/hf_xet-1.1.8-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:25b9d43333bbef39aeae1616789ec329c21401a7fe30969d538791076227b591", size = 3344325, upload-time = "2025-08-18T22:01:02.013Z" },
     { url = "https://files.pythonhosted.org/packages/9e/d3/0aaf279f4f3dea58e99401b92c31c0f752924ba0e6c7d7bb07b1dbd7f35e/hf_xet-1.1.8-cp37-abi3-win_amd64.whl", hash = "sha256:4171f31d87b13da4af1ed86c98cf763292e4720c088b4957cf9d564f92904ca9", size = 2801689, upload-time = "2025-08-18T22:01:04.81Z" },
+]
+
+[[package]]
+name = "holidays"
+version = "0.88"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4c/82/37b4eb3b97b218d6cec19ff90634067911d6ef291ef23673126ad00a7e37/holidays-0.88.tar.gz", hash = "sha256:a356e51353f245c110b2357cea24b11b95acd95ae65df4e105e480e47dfbf547", size = 828806, upload-time = "2026-01-05T21:00:10.407Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c8/45/3b41ddaa6e9cb3da05b43f0803532aefacdc2276b95b6ab7a8ba064d1472/holidays-0.88-py3-none-any.whl", hash = "sha256:ad1dbe41f091106ddb14025dc37f867aef0afa72a9ca601c3ec71d9953f94046", size = 1348348, upload-time = "2026-01-05T21:00:08.315Z" },
 ]
 
 [[package]]
