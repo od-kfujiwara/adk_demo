@@ -37,13 +37,11 @@ def run_migration():
             host_port_db = auth_host[1].split("/")
             host_port = host_port_db[0].split(":")
 
-            connection_params = {
-                "user": user_pass[0],
-                "password": user_pass[1],
-                "host": host_port[0],
-                "port": host_port[1] if len(host_port) > 1 else "5432",
-                "database": host_port_db[1],
-            }
+            user = user_pass[0]
+            password = user_pass[1]
+            host = host_port[0]
+            port = host_port[1] if len(host_port) > 1 else "5432"
+            database = host_port_db[1]
         else:
             print(f"❌ エラー: 不正なDATABASE_URL形式: {database_url}")
             sys.exit(1)
@@ -62,7 +60,13 @@ def run_migration():
     # PostgreSQLに接続
     try:
         print("📊 データベースに接続中...")
-        conn = psycopg2.connect(**connection_params)
+        conn = psycopg2.connect(
+            user=user,
+            password=password,
+            host=host,
+            port=port,
+            database=database,
+        )
         cursor = conn.cursor()
 
         # 各マイグレーションファイルを順番に実行
