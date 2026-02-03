@@ -56,47 +56,6 @@ uv run adk web --session_service_uri postgresql://adk_user:adk_password@localhos
 
 ブラウザで表示されたURLにアクセスして、エージェントと会話できます。
 
-### トークン使用量の確認
-
-#### コンソールログ
-コンソールに以下のようなログが表示されます：
-
-```
-INFO:utils.token_logger:[TOKEN USAGE - root_agent] Input: 150, Output: 200, Total: 350
-INFO:utils.token_logger:[TOKEN USAGE - coffee_agent] Input: 100, Output: 150, Total: 250
-```
-
-#### データベースから確認
-PostgreSQLに接続してトークン使用量を確認：
-
-```bash
-# PostgreSQLに接続
-docker compose exec postgres psql -U adk_user -d adk_sessions
-
-# 最近のトークン使用量を表示
-SELECT timestamp, agent_name, input_tokens, output_tokens, total_tokens
-FROM token_usage
-ORDER BY timestamp DESC
-LIMIT 10;
-
-# エージェント別の集計
-SELECT agent_name, COUNT(*) as calls, SUM(total_tokens) as total
-FROM token_usage
-GROUP BY agent_name;
-
-# 終了
-\q
-```
-
-#### 分析用SQLの実行
-[queries/token_usage_analysis.sql](queries/token_usage_analysis.sql)には様々な分析用SQLが用意されています：
-- 全体のトークン使用量サマリー
-- エージェント別の集計
-- 時系列分析（日別・時間帯別）
-- セッション別の分析
-- コスト推定
-- 異常検知
-
 ## プロジェクト構成
 
 ```
@@ -125,53 +84,9 @@ GROUP BY agent_name;
 └── .env                      # 環境変数（Git管理外）
 ```
 
-## データベース管理
-### PostgreSQLコンテナの停止
-
-```bash
-docker compose down
-```
-
-### データベースの完全削除（データも削除）
-
-```bash
-docker compose down -v
-```
-
-### PostgreSQLに直接接続
-
-```bash
-docker compose exec postgres psql -U adk_user -d adk_sessions
-```
-
-## トラブルシューティング
-### PostgreSQLに接続できない
-
-1. コンテナが起動しているか確認：
-   ```bash
-   docker compose ps
-   ```
-
-2. ログを確認：
-   ```bash
-   docker compose logs postgres
-   ```
-
-### トークン使用量が表示されない
-`--log_level info`オプションを指定していることを確認してください。
-
-## 開発
-### 新しいエージェントの追加
-1. `agents/`配下に新しいディレクトリを作成
-2. `agent.py`を作成してエージェントを定義
-3. `agents/agent.py`でサブエージェントとして登録
-
 ### バッチ実行
 CSVファイルから質問を読み込んで一括処理：
 
 ```bash
 uv run -m batch.run_agent_sample
 ```
-
-## ライセンス
-このプロジェクトはデモ用です。
