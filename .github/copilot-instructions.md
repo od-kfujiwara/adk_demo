@@ -34,5 +34,3 @@ Google Agent Development Kit (ADK)を使用した飲み物案内マルチエー�
 | 項目     | バージョン |
 |----------|------------|
 | Python   | 3.11 以上  |
-| FastAPI  | 0.x 系     |
-| Uvicorn  | 0.x 系     |
